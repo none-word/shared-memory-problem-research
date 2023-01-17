@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  consumer:
+    container_name: consumer
+    image: noneword/smp-module
+    environment:
+      DB_PASSWORD: password
+      DB_USER: postgres
+      DB_NAME: database
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+    ports:
+      - "4501:4501"
+    depends_on:
+      - postgres
+    restart: on-failure
+  postgres:
+    container_name: postgres
+    image: postgres:alpine
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: database
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
