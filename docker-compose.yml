@@ -1,20 +1,24 @@
 version: "3"
 
 services:
-  consumer:
-    container_name: consumer
-    image: noneword/smp-module
-    environment:
-      DB_PASSWORD: password
-      DB_USER: postgres
-      DB_NAME: database
-      DB_HOST: host.docker.internal
-      DB_PORT: 5432
-    ports:
-      - "4501:4501"
-    depends_on:
-      - postgres
-    restart: on-failure
+#  consumer1:
+#    container_name: consumer1
+#    image: noneword/smp-module
+#    environment:
+#      DB_PASSWORD: password
+#      DB_USER: postgres
+#      DB_NAME: database
+#      DB_HOST: host.docker.internal
+#      DB_PORT: 5432
+#      REDIS_HOST: host.docker.internal
+#      REDIS_PORT: 6379
+#      REDIS_PASSWORD: redis
+#    ports:
+#      - "4501:4501"
+#    depends_on:
+#      - postgres
+#      - redis
+#    restart: on-failure
   postgres:
     container_name: postgres
     image: postgres:alpine
@@ -26,11 +30,68 @@ services:
       - "5432:5432"
     volumes:
       - ./pgdata:/var/lib/postgresql/data
-  cache:
+  redis:
+    container_name: redis
     image: redis:7.0.8
-    restart: always
     ports:
-      - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+      - "6379:6379"
+    command: redis-server --loglevel warning --requirepass redis
     volumes:
       - cache:/data
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - elasticsearch
+    restart: always
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - '9090:9090'
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.16.3
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.16.3
+    container_name: logstash
+    ports:
+      - "9600:9600"
+      - "5044:5044"
+      - "4560:4560"
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    environment:
+      - ELASTICSEARCH_HOST=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+volumes:
+  cache:
+    driver: local
+  elasticsearch_data:

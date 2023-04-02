@@ -1,6 +1,6 @@
 FROM openjdk:17
 
-WORKDIR /producer
+WORKDIR /smp-module
 
 COPY . .
 
