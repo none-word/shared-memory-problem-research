@@ -5,12 +5,16 @@ import com.example.sharedmemoryproblemresearch.service.DatabaseService;
 import com.example.sharedmemoryproblemresearch.service.SimulationI;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -21,17 +25,22 @@ public class SimulationService implements SimulationI, ApplicationListener<Simul
 
     @Value("${sleep.time}")
     private Integer sleepTime;
+    @Value("${simulation.threads.number}")
+    private Integer threadsNumber;
 
+    @SneakyThrows
     @Override
-    public void simulate() throws InterruptedException {
+    public void simulate() {
         log.info("Started process of generating requests");
         while (true) {
             Timer.Sample sample = Timer.start();
             try {
                 databaseService.changeData();
             } catch (OptimisticLockingFailureException e) {
+                log.error("ERROR: {}", e.getMessage());
                 e.printStackTrace();
             } catch (DataAccessException e) {
+                log.error("ERROR: {}", e.getMessage());
                 e.printStackTrace();
             }
             sample.stop(timer);
@@ -42,10 +51,10 @@ public class SimulationService implements SimulationI, ApplicationListener<Simul
     @Override
     public void onApplicationEvent(SimulationEvent event) {
         log.info("Catch SimulationEvent");
-        try {
-            simulate();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadsNumber);
+        for (int i = 0; i < threadsNumber; i++) {
+            executorService.submit(this::simulate);
         }
+        executorService.shutdown();
     }
 }

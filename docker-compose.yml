@@ -21,7 +21,7 @@ services:
 #    restart: on-failure
   postgres:
     container_name: postgres
-    image: postgres:alpine
+    image: postgres:15.2
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
@@ -39,7 +39,7 @@ services:
     volumes:
       - cache:/data
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:8.2.6
     ports:
       - "3000:3000"
     depends_on:
@@ -47,7 +47,7 @@ services:
       - elasticsearch
     restart: always
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v2.43.0
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     command:
@@ -78,6 +78,7 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
       - elasticsearch
+      - logstash
   logstash:
     image: docker.elastic.co/logstash/logstash:7.16.3
     container_name: logstash

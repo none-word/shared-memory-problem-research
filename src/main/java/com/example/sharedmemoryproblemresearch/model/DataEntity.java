@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Data
 @Entity
+@Table(indexes = {@Index(name = "idx_data_entity_uuid", columnList = "uuid")})
 public class DataEntity {
 
     @GeneratedValue(strategy = GenerationType.UUID)
